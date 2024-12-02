@@ -24,6 +24,7 @@ jobs:
         pip install numpy
         pip install kfp
         pip install scikit-learn
+        pip install kfp-aws
         
     - name: Connect to remote server and run the Notebook
       env:
