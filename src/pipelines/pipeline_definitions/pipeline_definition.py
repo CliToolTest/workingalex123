@@ -1,6 +1,4 @@
-# pipeline_definitions.py
 import sys
-
 sys.path.append('../../src')
 from components_py.pull_data_component.pull_data_component import pull_data
 from components_py.preprocess_component.preprocess_component import preprocess
@@ -9,16 +7,13 @@ from components_py.deploy_model_component.deploy_model_component import deploy_m
 from components_py.inference_component.inference_component import inference
 from components_py.evaluate_component.evaluate_component import evaluate
 
-from kfp.aws import use_aws_secret
-
-
 from kfp import dsl
+import boto3
 
 @dsl.pipeline(
     name='demo-pipeline',
     description='An example pipeline for wine quality prediction.'
 )
-
 def pipeline(
     url: str,
     target: str,
@@ -30,7 +25,6 @@ def pipeline(
     l1_ratio: float,
     threshold_metrics: dict,
 ):
-    
     pull_task = pull_data(url=url)
 
     preprocess_task = preprocess(data=pull_task.outputs["data"])
@@ -46,7 +40,15 @@ def pipeline(
         alpha=alpha,
         l1_ratio=l1_ratio
     )
-    train_task.apply(use_aws_secret(secret_name="aws-secret"))
+
+    # Use boto3 to fetch AWS secrets in the task if needed
+    def fetch_aws_secret(secret_name):
+        secrets_client = boto3.client('secretsmanager')
+        secret_value = secrets_client.get_secret_value(SecretId=secret_name)
+        return secret_value['SecretString']
+
+    # Example usage of AWS secret (inside your components)
+    aws_secret = fetch_aws_secret("aws-secret")
 
     evaluate_task = evaluate(
         run_id=train_task.outputs["run_id"],
